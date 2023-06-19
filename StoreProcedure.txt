@@ -1,0 +1,55 @@
+﻿USE [WizmoShippingDetails]
+GO
+
+/****** Object:  StoredProcedure [dbo].[GetShippingStatus]    Script Date: 2023-06-19 6:20:57 PM ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+-- =============================================
+-- Author:		<Author,,Ganpat>
+-- Create date: <Create Date,,>
+-- Description:	<Description,,>
+-- =============================================
+CREATE PROCEDURE [dbo].[GetShippingStatus]
+	-- Add the parameters for the stored procedure here
+	@StartDate DateTime,
+	@EndDate DateTime
+AS
+BEGIN
+	-- SET NOCOUNT ON added to prevent extra result sets from
+	-- interfering with SELECT statements.
+	SET NOCOUNT ON;
+
+    -- Insert statements for procedure here
+	
+	WITH ShippingTrackingEvents
+	AS (
+		SELECT SET1.id, SET1.shipmentid, SET1.eventdt, SET1.trackingcodevalueid
+	    FROM ShipmentEvents_Test AS SET1
+		INNER JOIN
+			(
+				SELECT MAX(eventdt) AS eventdt, shipmentid
+				FROM ShipmentEvents_Test
+				GROUP BY shipmentid
+			) AS SET2
+		ON SET1.shipmentid = SET2.shipmentid AND SET1.eventdt = SET2.eventdt
+		WHERE SET1.eventdt BETWEEN @StartDate AND @EndDate
+	)
+	SELECT 
+		st.trackingnumber AS 'TrackingNumber',
+		st.shipmentdate AS 'ShippingDate',
+		trv.[event] AS 'ShippingStatus',
+		ste.eventdt AS 'StatusDate'
+	FROM Shipment_Test st
+	JOIN ShippingTrackingEvents ste
+	ON st.id = ste.shipmentid
+	JOIN trackingcodevalue trv
+	ON trv.id = ste.trackingcodevalueid
+	
+END
+GO
+
+
